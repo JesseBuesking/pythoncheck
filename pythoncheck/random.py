@@ -57,7 +57,7 @@ class StdGen(object):
         s2_1 = StdGen.a2 * (s2 - k_1 * StdGen.q2) - k_1 * StdGen.r2
         s2_2 = int(s2_1 + StdGen.m2 if s2_1 < 0 else s2_1)
         z = s1_2 - s2_2
-        z_1 = z + StdGen.m1 - 1 if z < 1 else z
+        z_1 = z + int(StdGen.m1) - 1 if z < 1 else z
         return z_1, StdGen(s1_2, s2_2)
 
     @classmethod
@@ -86,9 +86,9 @@ class StdGen(object):
             return StdGen.std_range((h, l), rng), rng
         else:
             k = h - l + 1
-            # b = 2147483561 # TODO use this
-            # noinspection PyUnresolvedReferences
-            b = np.int32(2147483561)
+            b = 2147483561 # TODO use this
+            # # noinspection PyUnresolvedReferences
+            # b = np.int32(2147483561)
             n = StdGen.ilog_base(b, k)
 
             def f(n, acc, g):
@@ -96,9 +96,9 @@ class StdGen(object):
                     return acc, g
                 else:
                     x, g_1 = StdGen.std_next(g)
-                    # TODO undo np stuff
-                    # noinspection PyUnresolvedReferences
-                    x = np.int32(x)
+                    # # TODO undo np stuff
+                    # # noinspection PyUnresolvedReferences
+                    # x = np.int32(x)
                     res_1, res_2 = f((n - 1), (x + acc * b), g_1)
                     return res_1, res_2
             f_res1, f_res2 = f(n, 1, rng)

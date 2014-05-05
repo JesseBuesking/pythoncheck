@@ -68,7 +68,7 @@ class Test(TestCase):
 
     @for_examples(
         (((1, 2), StdGen(0, 0)), (2, StdGen(0, 0))),
-        (((3, 7), StdGen(3, 2)), (5, StdGen(120042, 81384))),
+        (((3, 7), StdGen(3, 2)), (7, StdGen(120042, 81384))),
         (((2, 7), StdGen(3, 2)), (7, StdGen(120042, 81384)))
     )
     def test_std_range(self, x, y):
