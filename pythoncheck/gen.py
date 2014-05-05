@@ -1,5 +1,5 @@
 from pythoncheck import random
-from pythoncheck.random import StdGen, rng
+from pythoncheck.random import StdGen, rng, split
 
 
 class Gen(object):
@@ -17,8 +17,32 @@ class Gen(object):
         return Gen(lambda n, r: f(self.gen(n, r)))
 
     @classmethod
+    def bind(cls, m, k):
+        def _bind(n, r0):
+            r1, r2 = split(r0)
+            m_1 = k(m.gen(n, r1))
+            return m_1.gen(n, r2)
+        return Gen(_bind)
+
+    @classmethod
     def map(cls, gn, f):
         return gn.Map(f)
+
+    @classmethod
+    def sized(cls, fgen):
+        def _sized(n, r):
+            m = fgen(n)
+            return m.gen(n, r)
+        return Gen(_sized)
+
+    # TODO verify
+    @classmethod
+    def resize(cls, gn, n):
+        return Gen(lambda _, r: gn.gen(n, r))
+
+    @classmethod
+    def rand(cls):
+        return Gen(lambda n, r: r)
 
     @classmethod
     def eval(cls, gn, n, rnd):
@@ -40,10 +64,6 @@ class Gen(object):
         return _sample(n, random.new_seed(), [])
 
     @classmethod
-    def rand(cls):
-        return Gen(lambda n, r: r)
-
-    @classmethod
     def choose(cls, l, h):
         return Gen.map(
             Gen.rand(),
@@ -56,6 +76,26 @@ class Gen(object):
             Gen.choose(0, len(xs) - 1),
             lambda i: xs[i]
         )
+
+    @classmethod
+    def oneof(cls, gens):
+        """
+        :param list gens: a list of generators
+        """
+        return Gen.bind(Gen.elements(gens), lambda x: x)
+
+    @classmethod
+    def frequency(cls, xs):
+        tot = sum([i[0] for i in xs])
+
+        def _pick(n, ys):
+            (k, x), xs = ys[0], ys[1:]
+            if n <= k:
+                return x
+            else:
+                return _pick(n - k, xs)
+
+        return Gen.bind(Gen.choose(1, tot), lambda n: _pick(n, xs))
 
 
 class Arbitrary(object):
