@@ -1,5 +1,5 @@
 from pythoncheck import random
-from pythoncheck.random import StdGen, rng, split
+from pythoncheck.random import StdGen, rng, split, new_seed
 
 
 class Gen(object):
@@ -15,6 +15,10 @@ class Gen(object):
         :param function f: a function
         """
         return Gen(lambda n, r: f(self.gen(n, r)))
+
+    def Next(self):
+        s = new_seed()
+        return self.gen(s.a, new_seed())
 
     @classmethod
     def bind(cls, m, k):
@@ -37,7 +41,7 @@ class Gen(object):
 
     # TODO verify
     @classmethod
-    def resize(cls, gn, n):
+    def resize(cls, n, gn):
         return Gen(lambda _, r: gn.gen(n, r))
 
     @classmethod
@@ -45,17 +49,17 @@ class Gen(object):
         return Gen(lambda n, r: r)
 
     @classmethod
-    def eval(cls, gn, n, rnd):
+    def eval(cls, n, rnd, gn):
         size, rnd_1 = rng((0, n), rnd)
         return gn.gen(size, rnd_1)
 
     @classmethod
-    def sample(cls, gn, size, n):
+    def sample(cls, size, n, gn):
         def _sample(i, seed, samples):
             if 0 == i:
                 return samples
             else:
-                samples = [Gen.eval(gn, size, seed)] + samples
+                samples = [Gen.eval(size, seed, gn)] + samples
                 return _sample(
                     i - 1,
                     StdGen.std_split(seed)[1],
@@ -96,6 +100,71 @@ class Gen(object):
                 return _pick(n - k, xs)
 
         return Gen.bind(Gen.choose(1, tot), lambda n: _pick(n, xs))
+
+    @classmethod
+    def sequence(cls, l):
+        def go(gs, acc, size, r0):
+            if 0 == len(gs):
+                return acc[::-1]
+            else:
+                g = gs[0]
+                gs_1 = gs[1:]
+                r1, r2 = split(r0)
+                y = g.gen(size, r1)
+                acc = [y] + acc
+                return go(gs_1, acc, size, r2)
+        return Gen(lambda n, r: go(l, [], n, r))
+
+    @classmethod
+    def list_of_length(cls, n, gn):
+        return Gen.sequence([gn for _ in range(n)])
+
+    @classmethod
+    def list_of(cls, gn):
+        def _s(n):
+            k = Gen.choose(0, n + 1)
+            k = k.Next()
+            return Gen.list_of_length(k, gn)
+        return Gen.sized(_s)
+
+    @classmethod
+    def non_empty_list_of(cls, gn):
+        def _s(n):
+            k = Gen.choose(1, max(1, n))
+            k = k.Next()
+            return Gen.list_of_length(k, gn)
+        return Gen.sized(_s)
+
+    @classmethod
+    def sublist_of(cls, l):
+        # noinspection PyUnusedLocal
+        def _s(n, r):
+            size = Gen.choose(0, len(l) - 1).Next()
+            indices = Gen.list_of_length(size, Gen.choose(0, len(l) - 1))
+            indices = indices.Next()
+            indices = list(set(indices))
+            subseq = []
+            for i in indices:
+                subseq.append(l[i])
+            return subseq
+        return Gen(_s)
+
+    @classmethod
+    def constant(cls, v):
+        return Gen(lambda n, r: v)
+
+    @classmethod
+    def apply(cls, f, gn):
+        # noinspection PyUnusedLocal
+        def _apply(n, r):
+            f_1 = f.Next()
+            gn_1 = gn.Next()
+            return f_1(gn_1)
+        return Gen(_apply)
+
+    @classmethod
+    def promote(cls, f):
+        return Gen(lambda n, r: lambda a: f(a).gen(n, r))
 
 
 class Arbitrary(object):

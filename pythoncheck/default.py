@@ -24,7 +24,8 @@ def shrink_number(n):
     ret = []
     for v in _nums():
         if v in ret:
-            return list(set(ret))
+            seen = {n}
+            return [x for x in ret if x not in seen and not seen.add(x)]
         ret.append(v)
 
 
