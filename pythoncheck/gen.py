@@ -29,7 +29,7 @@ class Gen(object):
         return Gen(_bind)
 
     @classmethod
-    def map(cls, gn, f):
+    def map(cls, f, gn):
         return gn.Map(f)
 
     @classmethod
@@ -70,15 +70,15 @@ class Gen(object):
     @classmethod
     def choose(cls, l, h):
         return Gen.map(
-            Gen.rand(),
-            lambda stdgen: rng((l, h), stdgen)[0]
+            lambda stdgen: rng((l, h), stdgen)[0],
+            Gen.rand()
         )
 
     @classmethod
     def elements(cls, xs):
         return Gen.map(
-            Gen.choose(0, len(xs) - 1),
-            lambda i: xs[i]
+            lambda i: xs[i],
+            Gen.choose(0, len(xs) - 1)
         )
 
     @classmethod
@@ -165,6 +165,13 @@ class Gen(object):
     @classmethod
     def promote(cls, f):
         return Gen(lambda n, r: lambda a: f(a).gen(n, r))
+
+    # TODO verify
+    @classmethod
+    def map2(cls, f):
+        def _ab(a, b):
+            return Gen(lambda n, r: f(a, b))
+        return _ab
 
 
 class Arbitrary(object):
